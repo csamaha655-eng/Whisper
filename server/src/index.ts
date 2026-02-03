@@ -3,8 +3,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { GameRoom, GameState, Player } from './types';
-import { generateRoomCode, assignRoles, generateTurnOrder, selectWordForGame } from './gameLogic';
+import { GameRoom, GameState, Player } from './types.js';
+import { generateRoomCode, assignRoles, generateTurnOrder, selectWordForGame } from './gameLogic.js';
 
 const app = express();
 app.use(cors());
