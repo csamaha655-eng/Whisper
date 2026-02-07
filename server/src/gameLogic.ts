@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import type { GamePlayer } from './types';
+import type { GamePlayer } from './types.js';
 
 // Generate a random 6-character room code
 export function generateRoomCode(): string {
@@ -18,7 +18,7 @@ export function assignRoles(players: GamePlayer[]): {
 } {
   // Create a shuffled array of indices to ensure better randomization
   const indices = Array.from({ length: players.length }, (_, i) => i);
-  
+
   // Fisher-Yates shuffle for better randomness
   for (let i = indices.length - 1; i > 0; i--) {
     // Use crypto.randomBytes for better randomness in Node.js
@@ -27,7 +27,7 @@ export function assignRoles(players: GamePlayer[]): {
     const j = Math.floor(randomValue * (i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
-  
+
   // Select the first shuffled index as the impostor
   const impostorIndex = indices[0];
   const impostorId = players[impostorIndex].id;

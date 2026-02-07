@@ -1,18 +1,31 @@
-import { Suspense } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { Scene } from '../3d/Scene';
 
 export function Background() {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('[Background] 3D Scene error:', event.error);
+      setHasError(true);
+    };
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
   return (
     <div className="fixed inset-0 z-0 pointer-events-none">
-      {/* Gradient overlay */}
+      {/* Gradient overlay - ALWAYS RENDER THIS */}
       <div className="absolute inset-0 bg-gradient-to-b from-cyber-dark via-cyber-dark/95 to-cyber-darker" />
 
-      {/* 3D Scene */}
-      <div className="absolute inset-0 opacity-60">
-        <Suspense fallback={null}>
-          <Scene />
-        </Suspense>
-      </div>
+      {/* 3D Scene - Only render if no errors */}
+      {!hasError && (
+        <div className="absolute inset-0 opacity-60">
+          <Suspense fallback={null}>
+            <Scene />
+          </Suspense>
+        </div>
+      )}
 
       {/* Scan line effect */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">

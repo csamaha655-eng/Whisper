@@ -61,12 +61,21 @@ const initialState = {
   playerCategory: null,
 };
 
+let isSocketInitialized = false;
+
 export const useMultiplayerStore = create<MultiplayerStore>()(
   immer((set, get) => ({
     ...initialState,
 
     connect: () => {
+      if (isSocketInitialized) {
+        console.log('[Multiplayer] Socket already initialized');
+        return;
+      }
+      isSocketInitialized = true;
+      
       const socket = getSocket();
+      console.log('[Multiplayer] Connecting socket...');
 
       socket.on('connect', () => {
         set((state) => {
@@ -97,6 +106,7 @@ export const useMultiplayerStore = create<MultiplayerStore>()(
       });
 
       socket.on('room-updated', ({ players }) => {
+        console.log('[Multiplayer] Room updated - players:', players);
         set((state) => {
           state.players = players;
           // Update isHost status
@@ -109,16 +119,21 @@ export const useMultiplayerStore = create<MultiplayerStore>()(
 
       socket.on('game-started', ({ gameState, playerRoles }) => {
         const currentPlayerId = get().playerId;
+        console.log('[Multiplayer] Game started - playerId:', currentPlayerId, 'playerRoles:', playerRoles);
         const playerRoleInfo = playerRoles.find((pr: any) => pr.id === currentPlayerId);
+
+        if (!playerRoleInfo) {
+          console.error('[Multiplayer] Player role info not found for player:', currentPlayerId);
+          return;
+        }
 
         set((state) => {
           state.gameState = gameState;
-          if (playerRoleInfo) {
-            state.playerRole = playerRoleInfo.role;
-            state.playerSecretWord = playerRoleInfo.secretWord || null;
-            state.playerCategory = playerRoleInfo.category || null;
-          }
+          state.playerRole = playerRoleInfo.role;
+          state.playerSecretWord = playerRoleInfo.secretWord || null;
+          state.playerCategory = playerRoleInfo.category || null;
         });
+        console.log('[Multiplayer] Game state updated - role:', playerRoleInfo.role);
       });
 
       socket.on('game-state-updated', ({ gameState }) => {
@@ -146,7 +161,9 @@ export const useMultiplayerStore = create<MultiplayerStore>()(
 
     disconnect: () => {
       const socket = getSocket();
+      socket.removeAllListeners();
       socket.disconnect();
+      isSocketInitialized = false;
       set((state) => {
         Object.assign(state, initialState);
       });
@@ -165,16 +182,25 @@ export const useMultiplayerStore = create<MultiplayerStore>()(
     toggleReady: () => {
       const socket = getSocket();
       const roomCode = get().roomCode;
+      const playerId = get().playerId;
+      console.log('[Multiplayer] Toggle ready - roomCode:', roomCode, 'playerId:', playerId);
       if (roomCode) {
         socket.emit('toggle-ready', { roomCode });
+      } else {
+        console.error('[Multiplayer] Cannot toggle ready - no room code');
       }
     },
 
     startGame: () => {
       const socket = getSocket();
       const roomCode = get().roomCode;
+      const isHost = get().isHost;
+      const players = get().players;
+      console.log('[Multiplayer] Start game - roomCode:', roomCode, 'isHost:', isHost, 'players:', players.length);
       if (roomCode) {
         socket.emit('start-game', { roomCode });
+      } else {
+        console.error('[Multiplayer] Cannot start game - no room code');
       }
     },
 

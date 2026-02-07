@@ -3,7 +3,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { GameRoom, GameState, Player } from './types.js';
+import type { GameRoom, GameState, Player } from './types.js';
 import { generateRoomCode, assignRoles, generateTurnOrder, selectWordForGame } from './gameLogic.js';
 
 const app = express();
@@ -12,8 +12,8 @@ app.use(express.json());
 
 // Health check route
 app.get('/', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'Neon Whisper Multiplayer Server is running!',
     timestamp: new Date().toISOString()
   });
@@ -30,11 +30,15 @@ const io = new Server(httpServer, {
 // Store active rooms
 const rooms = new Map<string, GameRoom>();
 
+// Track role reveal dismissals per room (roomCode -> Set of playerIds who dismissed)
+const roleRevealDismissals = new Map<string, Set<string>>();
+
 // Clean up empty rooms every 5 minutes
 setInterval(() => {
   for (const [code, room] of rooms.entries()) {
     if (room.players.length === 0) {
       rooms.delete(code);
+      roleRevealDismissals.delete(code);
     }
   }
 }, 5 * 60 * 1000);
@@ -49,7 +53,7 @@ io.on('connection', (socket) => {
       id: socket.id,
       name: playerName || 'Player',
       isHost: true,
-      isReady: false,
+      isReady: true, // Auto-ready the host
     };
 
     const room: GameRoom = {
@@ -103,35 +107,48 @@ io.on('connection', (socket) => {
 
   // Toggle ready status
   socket.on('toggle-ready', ({ roomCode }) => {
+    console.log('[Server] Toggle ready - roomCode:', roomCode, 'socketId:', socket.id);
     const room = rooms.get(roomCode);
-    if (!room) return;
+    if (!room) {
+      console.log('[Server] Room not found:', roomCode);
+      return;
+    }
 
     const player = room.players.find((p) => p.id === socket.id);
     if (player) {
       player.isReady = !player.isReady;
+      console.log('[Server] Player', player.name, 'ready status:', player.isReady);
       io.to(roomCode).emit('room-updated', { players: room.players });
+    } else {
+      console.log('[Server] Player not found in room:', socket.id);
     }
   });
 
   // Start game
   socket.on('start-game', ({ roomCode }) => {
+    console.log('[Server] Start game - roomCode:', roomCode, 'socketId:', socket.id);
     const room = rooms.get(roomCode);
     if (!room) {
+      console.log('[Server] Room not found:', roomCode);
       socket.emit('error', { message: 'Room not found' });
       return;
     }
 
     if (socket.id !== room.hostId) {
+      console.log('[Server] Not host - socketId:', socket.id, 'hostId:', room.hostId);
       socket.emit('error', { message: 'Only host can start the game' });
       return;
     }
 
     if (room.players.length < 3) {
+      console.log('[Server] Not enough players:', room.players.length);
       socket.emit('error', { message: 'Need at least 3 players' });
       return;
     }
 
-    if (!room.players.every((p) => p.isReady)) {
+    const allReady = room.players.every((p) => p.isReady);
+    console.log('[Server] Players ready check:', allReady, 'players:', room.players.map(p => ({ name: p.name, isReady: p.isReady })));
+    if (!allReady) {
       socket.emit('error', { message: 'All players must be ready' });
       return;
     }
@@ -167,18 +184,26 @@ io.on('connection', (socket) => {
 
     room.gameState = gameState;
 
+    // Initialize role reveal dismissals tracking
+    roleRevealDismissals.set(roomCode, new Set());
+
+    console.log('[Server] Game started - word:', word, 'impostorId:', impostorId);
+
     // Send game state to all players (but hide secret word and impostor role)
+    const playerRoles = assignedPlayers.map((p) => ({
+      id: p.id,
+      role: p.role,
+      secretWord: p.role === 'civilian' ? word : undefined,
+      category: room.settings.impostorHintEnabled && p.role === 'impostor' ? category : undefined,
+    }));
+    console.log('[Server] Emitting game-started with playerRoles:', playerRoles);
+
     io.to(roomCode).emit('game-started', {
       gameState: {
         ...gameState,
         secretWord: undefined, // Don't send secret word to clients
       },
-      playerRoles: assignedPlayers.map((p) => ({
-        id: p.id,
-        role: p.role,
-        secretWord: p.role === 'civilian' ? word : undefined,
-        category: room.settings.impostorHintEnabled && p.role === 'impostor' ? category : undefined,
-      })),
+      playerRoles,
     });
   });
 
@@ -282,15 +307,35 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomCode);
     if (!room || !room.gameState) return;
 
-    room.gameState.showRoleReveal = false;
-    room.gameState.phase = 'round1';
+    // Track this player's dismissal
+    let dismissals = roleRevealDismissals.get(roomCode);
+    if (!dismissals) {
+      dismissals = new Set();
+      roleRevealDismissals.set(roomCode, dismissals);
+    }
+    dismissals.add(socket.id);
 
-    io.to(roomCode).emit('game-state-updated', {
-      gameState: {
-        ...room.gameState,
-        secretWord: undefined,
-      },
-    });
+    console.log('[Server] Role reveal dismissed by', socket.id, '- total dismissals:', dismissals.size, '/', room.players.length);
+
+    // Check if all players have dismissed
+    if (dismissals.size >= room.players.length) {
+      console.log('[Server] All players dismissed role reveal, transitioning to round1');
+      room.gameState.showRoleReveal = false;
+      room.gameState.phase = 'round1';
+
+      // Clear dismissals for this room
+      roleRevealDismissals.delete(roomCode);
+
+      io.to(roomCode).emit('game-state-updated', {
+        gameState: {
+          ...room.gameState,
+          secretWord: undefined,
+        },
+      });
+    } else {
+      console.log('[Server] Waiting for more players to dismiss role reveal');
+      // Don't send update yet, wait for all players
+    }
   });
 
   // Get room state
@@ -341,8 +386,12 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = Number(process.env.PORT) || 3001;
+const HOST = '0.0.0.0'; // Bind to all interfaces for Railway
+
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Server running on ${HOST}:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Client URL: ${process.env.CLIENT_URL || '*'}`);
 });
 

@@ -19,12 +19,14 @@ export function GameScreen() {
 
   const { handleHumanClue, handleHumanVote } = useGameLoop();
 
+  console.log('[GameScreen] Rendering - phase:', phase, 'showRoleReveal:', showRoleReveal, 'isMultiplayer:', isMultiplayer);
+
   const handlePlayAgain = () => {
     if (isMultiplayer) {
       // In multiplayer, reset goes back to lobby
       useMultiplayerStore.getState().reset();
     } else {
-      resetGame();
+    resetGame();
     }
   };
 
@@ -54,16 +56,23 @@ export function GameScreen() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Role Reveal Modal */}
-      {showRoleReveal && <RoleReveal onDismiss={handleDismissRoleReveal} />}
+      {/* Role Reveal Modal - Show for roleReveal phase OR when showRoleReveal is true */}
+      {(phase === 'roleReveal' || showRoleReveal) && <RoleReveal onDismiss={handleDismissRoleReveal} />}
 
       {/* Result Screen */}
       {phase === 'result' && <ResultScreen onPlayAgain={handlePlayAgain} />}
 
-      {/* Main Game Board */}
+      {/* Main Game Board - Show for all game phases except roleReveal and result */}
       {(phase === 'round1' || phase === 'round2' || phase === 'voting') && (
         <div className="flex-1 py-4">
           <GameBoard onHumanClue={handleClue} onHumanVote={handleVote} />
+        </div>
+      )}
+
+      {/* Fallback for setup phase - should not happen but prevents dark screen */}
+      {phase === 'setup' && (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-text-muted font-cyber">Loading game...</p>
         </div>
       )}
     </div>

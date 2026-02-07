@@ -102,11 +102,11 @@ export function RoleReveal({ onDismiss }: RoleRevealProps) {
               Your secret word is:
             </p>
             {displaySecretWord && (
-              <div className="p-4 bg-neon-cyan/10 rounded-lg border border-neon-cyan/30">
-                <p className="text-neon-cyan font-cyber text-2xl font-bold uppercase tracking-wider">
+            <div className="p-4 bg-neon-cyan/10 rounded-lg border border-neon-cyan/30">
+              <p className="text-neon-cyan font-cyber text-2xl font-bold uppercase tracking-wider">
                   {displaySecretWord}
-                </p>
-              </div>
+              </p>
+            </div>
             )}
             <p className="text-text-secondary text-sm">
               Give clues to prove you know the word,

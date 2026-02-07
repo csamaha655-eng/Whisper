@@ -1,38 +1,32 @@
-# Whisper Game Server
+# Whisper Server
 
-Backend server for the Whisper multiplayer game using Socket.io.
+Multiplayer backend server for Neon Whisper game.
 
-## Setup
+## Environment Variables
 
-1. Install dependencies:
+- `PORT` - Server port (default: 3001)
+- `CLIENT_URL` - Frontend URL for CORS (default: *)
+- `NODE_ENV` - Environment (production/development)
+
+## Local Development
+
 ```bash
 npm install
-```
-
-2. Create a `.env` file:
-```
-PORT=3001
-CLIENT_URL=http://localhost:5173
-```
-
-3. Run in development:
-```bash
 npm run dev
 ```
 
-4. Build for production:
+## Production Build
+
 ```bash
+npm install
 npm run build
 npm start
 ```
 
-## Deployment
+## Railway Deployment
 
-This server can be deployed to:
-- Railway (recommended)
-- Render
-- Heroku
-- Any Node.js hosting service
-
-Make sure to set the `CLIENT_URL` environment variable to your frontend URL.
-
+The server is configured to work with Railway out of the box:
+- Binds to `0.0.0.0` for Railway's networking
+- Uses `PORT` environment variable from Railway
+- Supports WebSocket connections
+- CORS configured via `CLIENT_URL` environment variable

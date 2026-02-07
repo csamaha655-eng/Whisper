@@ -18,13 +18,17 @@ export function RoomLobby({ onStartGame: _onStartGame }: RoomLobbyProps) {
     toggleReady,
     startGame,
     connect,
+    isConnected,
   } = useMultiplayerStore();
 
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    console.log('[RoomLobby] Connecting... roomCode:', roomCode);
     connect();
-  }, [connect]);
+  }, []);
+
+  console.log('[RoomLobby] Render - roomCode:', roomCode, 'isConnected:', isConnected, 'players:', players.length);
 
   const currentPlayer = players.find((p) => p.id === playerId);
 
@@ -61,8 +65,10 @@ export function RoomLobby({ onStartGame: _onStartGame }: RoomLobbyProps) {
           Room Code
         </label>
         <div className="flex gap-2">
-          <div className="flex-1 p-4 bg-cyber-dark/60 border border-neon-cyan/30 rounded-lg font-mono text-2xl text-center tracking-widest">
-            {roomCode}
+          <div className="flex-1 p-4 bg-cyber-dark/60 border border-neon-cyan/30 rounded-lg font-mono text-2xl text-center tracking-widest min-h-[60px] flex items-center justify-center">
+            {roomCode || (
+              <span className="text-text-muted text-base">Loading...</span>
+            )}
           </div>
           <NeonButton
             variant="cyan"
@@ -111,17 +117,15 @@ export function RoomLobby({ onStartGame: _onStartGame }: RoomLobbyProps) {
       </div>
 
       {/* Ready Button */}
-      {!isHost && (
-        <div className="mb-6">
-          <NeonButton
-            variant="cyan"
-            fullWidth
-            onClick={toggleReady}
-          >
-            {currentPlayer?.isReady ? 'Not Ready' : 'Ready'}
-          </NeonButton>
-        </div>
-      )}
+      <div className="mb-6">
+        <NeonButton
+          variant="cyan"
+          fullWidth
+          onClick={toggleReady}
+        >
+          {currentPlayer?.isReady ? 'Not Ready' : 'Ready'}
+        </NeonButton>
+      </div>
 
       {/* Start Game Button */}
       {isHost && (
@@ -137,6 +141,13 @@ export function RoomLobby({ onStartGame: _onStartGame }: RoomLobbyProps) {
           >
             {allReady ? 'Start Game' : `Waiting for players (${players.length}/3 minimum)`}
           </NeonButton>
+        </div>
+      )}
+
+      {/* Connection Status */}
+      {!isConnected && (
+        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">
+          Not connected to server. Please check your connection.
         </div>
       )}
 

@@ -17,6 +17,8 @@ function App() {
 
   const isSetup = !isGameActive;
 
+  console.log('[App] phase:', phase, 'isMultiplayer:', isMultiplayer, 'isGameActive:', isGameActive, 'isSetup:', isSetup);
+
   return (
     <div className="relative min-h-screen">
       {/* 3D Background - Always visible */}
