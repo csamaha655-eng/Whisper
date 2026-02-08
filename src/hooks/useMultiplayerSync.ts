@@ -3,17 +3,14 @@ import { useMultiplayerStore } from '../store/multiplayerStore';
 import { useGameStore } from '../store/gameStore';
 
 export function useMultiplayerSync() {
-  const multiplayerState = useMultiplayerStore((state) => ({
-    gameState: state.gameState,
-    playerRole: state.playerRole,
-    playerSecretWord: state.playerSecretWord,
-    playerCategory: state.playerCategory,
-    roomCode: state.roomCode,
-  }));
+  const gameState = useMultiplayerStore((state) => state.gameState);
+  const playerRole = useMultiplayerStore((state) => state.playerRole);
+  const playerSecretWord = useMultiplayerStore((state) => state.playerSecretWord);
+  const playerCategory = useMultiplayerStore((state) => state.playerCategory);
+  const roomCode = useMultiplayerStore((state) => state.roomCode);
 
   useEffect(() => {
-    if (multiplayerState.gameState && multiplayerState.roomCode) {
-      const gameState = multiplayerState.gameState;
+    if (gameState && roomCode) {
       useGameStore.setState((state) => {
         state.phase = gameState.phase;
         state.currentRound = gameState.currentRound;
@@ -26,18 +23,18 @@ export function useMultiplayerSync() {
         state.voteCounts = gameState.voteCounts;
         state.showRoleReveal = gameState.showRoleReveal;
         // Use player's secret word if they're a civilian
-        if (multiplayerState.playerSecretWord) {
-          state.secretWord = multiplayerState.playerSecretWord;
+        if (playerSecretWord) {
+          state.secretWord = playerSecretWord;
         }
       });
     }
-  }, [multiplayerState.gameState, multiplayerState.roomCode, multiplayerState.playerSecretWord]);
+  }, [gameState, roomCode, playerSecretWord]);
 
   return {
-    isMultiplayer: !!multiplayerState.roomCode,
-    playerRole: multiplayerState.playerRole,
-    playerSecretWord: multiplayerState.playerSecretWord,
-    playerCategory: multiplayerState.playerCategory,
+    isMultiplayer: !!roomCode,
+    playerRole,
+    playerSecretWord,
+    playerCategory,
   };
 }
 

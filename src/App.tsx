@@ -11,7 +11,7 @@ function App() {
   const multiplayerRoomCode = useMultiplayerStore((state) => state.roomCode);
 
   const isMultiplayer = !!multiplayerRoomCode;
-  const isGameActive = isMultiplayer 
+  const isGameActive = isMultiplayer
     ? !!multiplayerGameState && multiplayerGameState.phase !== 'setup'
     : phase !== 'setup';
 

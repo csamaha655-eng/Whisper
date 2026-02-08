@@ -11,26 +11,27 @@ interface RoleRevealProps {
 
 export function RoleReveal({ onDismiss }: RoleRevealProps) {
   const [isRevealed, setIsRevealed] = useState(false);
-  
+
   // Check if multiplayer
   const multiplayerRoomCode = useMultiplayerStore((state) => state.roomCode);
   const multiplayerRole = useMultiplayerStore((state) => state.playerRole);
   const multiplayerSecretWord = useMultiplayerStore((state) => state.playerSecretWord);
   const multiplayerCategory = useMultiplayerStore((state) => state.playerCategory);
-  
+
   // Single player
-  const humanPlayer = useGameStore((state) =>
-    state.players.find((p) => p.id === state.humanPlayerId)
-  );
+  const players = useGameStore((state) => state.players);
+  const humanPlayerId = useGameStore((state) => state.humanPlayerId);
   const secretWord = useGameStore((state) => state.secretWord);
   const category = useGameStore((state) => state.category);
   const settings = useGameStore((state) => state.settings);
 
+  const humanPlayer = players.find((p) => p.id === humanPlayerId);
+
   const isMultiplayer = !!multiplayerRoomCode;
-  const isImpostor = isMultiplayer 
+  const isImpostor = isMultiplayer
     ? multiplayerRole === 'impostor'
     : humanPlayer?.role === 'impostor';
-  
+
   const displaySecretWord = isMultiplayer ? multiplayerSecretWord : secretWord;
   const displayCategory = isMultiplayer ? multiplayerCategory : category;
   const displayImpostorHint = isMultiplayer ? true : settings.impostorHintEnabled;
@@ -102,11 +103,11 @@ export function RoleReveal({ onDismiss }: RoleRevealProps) {
               Your secret word is:
             </p>
             {displaySecretWord && (
-            <div className="p-4 bg-neon-cyan/10 rounded-lg border border-neon-cyan/30">
-              <p className="text-neon-cyan font-cyber text-2xl font-bold uppercase tracking-wider">
+              <div className="p-4 bg-neon-cyan/10 rounded-lg border border-neon-cyan/30">
+                <p className="text-neon-cyan font-cyber text-2xl font-bold uppercase tracking-wider">
                   {displaySecretWord}
-              </p>
-            </div>
+                </p>
+              </div>
             )}
             <p className="text-text-secondary text-sm">
               Give clues to prove you know the word,

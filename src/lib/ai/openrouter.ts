@@ -17,9 +17,17 @@ import {
 } from './fallback';
 
 // Initialize OpenAI client configured for OpenRouter
+// Initialize OpenAI client configured for OpenRouter
+// Use a dummy key if missing to prevent immediate crash on load
+const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY || 'dummy-key-for-client-init';
+
+if (apiKey === 'dummy-key-for-client-init') {
+  console.warn('[OpenRouter] Missing VITE_OPENROUTER_API_KEY! AI features will fail.');
+}
+
 const client = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: import.meta.env.VITE_OPENROUTER_API_KEY,
+  apiKey,
   dangerouslyAllowBrowser: true,
   defaultHeaders: {
     'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173',
@@ -47,17 +55,17 @@ export async function generateClue(params: ClueGenerationParams): Promise<string
   const prompt =
     role === 'civilian'
       ? buildCivilianCluePrompt({
-          word: word!,
-          previousClues,
-          playerClues,
-          difficulty,
-        })
+        word: word!,
+        previousClues,
+        playerClues,
+        difficulty,
+      })
       : buildImpostorCluePrompt({
-          category,
-          previousClues,
-          playerClues,
-          difficulty,
-        });
+        category,
+        previousClues,
+        playerClues,
+        difficulty,
+      });
 
   try {
     const response = await client.chat.completions.create({
@@ -106,16 +114,16 @@ export async function generateVote(params: VoteGenerationParams): Promise<string
   const prompt =
     role === 'civilian'
       ? buildCivilianVotePrompt({
-          word: word!,
-          allClues,
-          playerNames,
-          selfId,
-        })
+        word: word!,
+        allClues,
+        playerNames,
+        selfId,
+      })
       : buildImpostorVotePrompt({
-          allClues,
-          playerNames,
-          selfId,
-        });
+        allClues,
+        playerNames,
+        selfId,
+      });
 
   try {
     const response = await client.chat.completions.create({
