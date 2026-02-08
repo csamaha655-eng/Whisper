@@ -22,6 +22,7 @@ export function SetupScreen() {
   const startGame = useGameStore((state) => state.startGame);
   // Use selectors to prevent unnecessary re-renders
   const createRoom = useMultiplayerStore((state) => state.createRoom);
+  const connect = useMultiplayerStore((state) => state.connect);
   const roomCode = useMultiplayerStore((state) => state.roomCode);
 
   // Fix: Use useEffect to avoid infinite loop
@@ -49,6 +50,7 @@ export function SetupScreen() {
       alert('Please enter your name');
       return;
     }
+    connect();
     createRoom(playerName.trim(), settings.difficulty, settings.impostorHintEnabled);
     // Don't call setMode here - useEffect will handle it when roomCode is set
   };
